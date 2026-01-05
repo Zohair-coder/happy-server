@@ -78,7 +78,7 @@ spec:
             restartPolicy: OnFailure
             containers:
                 - name: minio-init
-                  image: public.ecr.aws/minio/mc:latest
+                  image: public.ecr.aws/docker/library/alpine:3.20
                   imagePullPolicy: IfNotPresent
                   env:
                       - name: MINIO_ROOT_USER
@@ -97,6 +97,10 @@ spec:
                       - /bin/sh
                       - -c
                       - |
-                        until /usr/bin/mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do sleep 2; done;
-                        /usr/bin/mc mb -p "local/$S3_BUCKET" || true;
-                        /usr/bin/mc anonymous set download "local/$S3_BUCKET";
+                        set -e
+                        apk add --no-cache curl
+                        curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
+                        chmod +x /usr/local/bin/mc
+                        until /usr/local/bin/mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do sleep 2; done
+                        /usr/local/bin/mc mb -p "local/$S3_BUCKET" || true
+                        /usr/local/bin/mc anonymous set download "local/$S3_BUCKET"

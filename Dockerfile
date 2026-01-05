@@ -1,5 +1,5 @@
 # Stage 1: Building the application
-FROM node:20 AS builder
+FROM public.ecr.aws/docker/library/node:20 AS builder
 
 # Install dependencies
 RUN apt-get update && apt-get install -y python3 ffmpeg make g++ build-essential && rm -rf /var/lib/apt/lists/*
@@ -22,7 +22,7 @@ COPY ./sources ./sources
 RUN yarn build
 
 # Stage 2: Runtime
-FROM node:20 AS runner
+FROM public.ecr.aws/docker/library/node:20 AS runner
 
 WORKDIR /app
 

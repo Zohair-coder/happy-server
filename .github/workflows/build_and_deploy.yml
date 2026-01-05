@@ -7,10 +7,12 @@ on:
             - dev
 
 env:
-    DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-    DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
     KUBECONFIG: ${{ secrets.KUBECONFIG }}
-    IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/happy-server
+    IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/happy-server
+
+permissions:
+    contents: read
+    packages: write
 
 jobs:
     build-and-push:
@@ -25,8 +27,8 @@ jobs:
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
 
-            - name: Login to DockerHub
-              run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+            - name: Login to GHCR
+              run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
             - name: Build and push Docker image
               run: |

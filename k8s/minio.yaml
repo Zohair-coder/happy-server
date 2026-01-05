@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-    name: minio-data
+    name: shared-pvc
 spec:
     accessModes:
         - ReadWriteOnce
@@ -50,12 +50,12 @@ spec:
                       - containerPort: 9001
                         name: console
                   volumeMounts:
-                      - name: minio-data
+                      - name: shared-pvc
                         mountPath: /data
             volumes:
-                - name: minio-data
+                - name: shared-pvc
                   persistentVolumeClaim:
-                      claimName: minio-data
+                      claimName: shared-pvc
 ---
 apiVersion: v1
 kind: Service

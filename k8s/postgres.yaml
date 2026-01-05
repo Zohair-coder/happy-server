@@ -47,14 +47,10 @@ spec:
                       - name: PGDATA
                         value: /var/lib/postgresql/data/pgdata
                   volumeMounts:
-                      - name: postgres-data
+                      - name: shared-pvc
                         mountPath: /var/lib/postgresql/data
-    volumeClaimTemplates:
-        - metadata:
-              name: postgres-data
-          spec:
-              accessModes:
-                  - ReadWriteOnce
-              resources:
-                  requests:
-                      storage: 10Gi
+                        subPath: postgres
+            volumes:
+                - name: shared-pvc
+                  persistentVolumeClaim:
+                      claimName: shared-pvc

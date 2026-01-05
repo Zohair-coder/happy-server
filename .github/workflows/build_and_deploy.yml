@@ -1,0 +1,77 @@
+name: Build and Deploy to Kubernetes
+
+on:
+    push:
+        branches:
+            - main
+            - dev
+
+env:
+    DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+    DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+    KUBECONFIG: ${{ secrets.KUBECONFIG }}
+    IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/happy-server
+
+jobs:
+    build-and-push:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v3
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Login to DockerHub
+              run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+            - name: Build and push Docker image
+              run: |
+                  COMMIT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+                  docker buildx create --use
+                  docker buildx build --platform linux/arm64 -t $IMAGE_NAME:$COMMIT_SHA . --push
+
+    deploy:
+        needs: build-and-push
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Install and configure kubectl
+              run: |
+                  sudo snap install kubectl --classic
+                  echo "$KUBECONFIG" | base64 --decode > kubeconfig.yaml
+
+            - name: Set Namespace based on Branch
+              run: echo "NAMESPACE=$(if [ \"${{ github.ref }}\" = \"refs/heads/main\" ]; then echo 'default'; else echo 'dev'; fi)" >> $GITHUB_ENV
+
+            - name: Configure Kubernetes secrets
+              run: |
+                  kubectl --kubeconfig=kubeconfig.yaml -n ${{ env.NAMESPACE }} create secret generic happy-postgres-secrets \
+                      --from-literal=POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
+                      --from-literal=POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
+                      --dry-run=client -o yaml | kubectl --kubeconfig=kubeconfig.yaml apply -f -
+                  kubectl --kubeconfig=kubeconfig.yaml -n ${{ env.NAMESPACE }} create secret generic happy-server-secrets \
+                      --from-literal=DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+                      --from-literal=S3_ACCESS_KEY="${{ secrets.S3_ACCESS_KEY }}" \
+                      --from-literal=S3_SECRET_KEY="${{ secrets.S3_SECRET_KEY }}" \
+                      --from-literal=HANDY_MASTER_SECRET="${{ secrets.HANDY_MASTER_SECRET }}" \
+                      --from-literal=SEED="${{ secrets.SEED }}" \
+                      --dry-run=client -o yaml | kubectl --kubeconfig=kubeconfig.yaml apply -f -
+                  kubectl --kubeconfig=kubeconfig.yaml -n ${{ env.NAMESPACE }} create secret generic happy-minio-secrets \
+                      --from-literal=MINIO_ROOT_USER="${{ secrets.S3_ACCESS_KEY }}" \
+                      --from-literal=MINIO_ROOT_PASSWORD="${{ secrets.S3_SECRET_KEY }}" \
+                      --dry-run=client -o yaml | kubectl --kubeconfig=kubeconfig.yaml apply -f -
+
+            - name: Deploy to Kubernetes
+              run: |
+                  COMMIT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+                  kubectl --kubeconfig=kubeconfig.yaml -n ${{ env.NAMESPACE }} apply -f k8s
+                  kubectl --kubeconfig=kubeconfig.yaml -n ${{ env.NAMESPACE }} set image deployment/happy-server \
+                      happy-server=$IMAGE_NAME:$COMMIT_SHA \
+                      migrate=$IMAGE_NAME:$COMMIT_SHA
+                  kubectl --kubeconfig=kubeconfig.yaml -n ${{ env.NAMESPACE }} rollout status deployment/happy-server

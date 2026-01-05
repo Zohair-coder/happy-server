@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: happy-server-ingress
+    annotations:
+        kubernetes.io/ingress.class: nginx
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+    rules:
+        - host: happyapi.zohair.dev
+          http:
+              paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                        service:
+                            name: happy-server
+                            port:
+                                number: 3000
+        - host: www.happyapi.zohair.dev
+          http:
+              paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                        service:
+                            name: happy-server
+                            port:
+                                number: 3000
+    tls:
+        - hosts:
+              - happyapi.zohair.dev
+              - www.happyapi.zohair.dev
+          secretName: happy-server-tls

@@ -8,7 +8,6 @@ on:
 
 env:
     KUBECONFIG: ${{ secrets.KUBECONFIG }}
-    IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/happy-server
 
 permissions:
     contents: read
@@ -20,6 +19,9 @@ jobs:
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
+
+            - name: Set image name
+              run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
             - name: Set up QEMU
               uses: docker/setup-qemu-action@v3
@@ -42,6 +44,9 @@ jobs:
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
+
+            - name: Set image name
+              run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
             - name: Install and configure kubectl
               run: |

@@ -49,15 +49,13 @@ spec:
                       - containerPort: 6379
                         name: redis
                   volumeMounts:
-                      - name: shared-pvc
+                      - name: redis-data
                         mountPath: /data
-                        subPath: redis
                       - name: redis-config
                         mountPath: /etc/redis
             volumes:
                 - name: redis-config
                   configMap:
                       name: redis-config
-                - name: shared-pvc
-                  persistentVolumeClaim:
-                      claimName: shared-pvc
+                - name: redis-data
+                  emptyDir: {}

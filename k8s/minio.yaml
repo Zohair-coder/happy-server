@@ -40,13 +40,11 @@ spec:
                       - containerPort: 9001
                         name: console
                   volumeMounts:
-                      - name: shared-pvc
+                      - name: minio-data
                         mountPath: /data
-                        subPath: minio
             volumes:
-                - name: shared-pvc
-                  persistentVolumeClaim:
-                      claimName: shared-pvc
+                - name: minio-data
+                  emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

@@ -54,3 +54,5 @@ spec:
                 - name: shared-pvc
                   persistentVolumeClaim:
                       claimName: shared-pvc
+            nodeSelector:
+                kubernetes.io/hostname: "10.0.10.165"
